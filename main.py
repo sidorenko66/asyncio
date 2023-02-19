@@ -34,7 +34,8 @@ class People(Base):
 
 
 CHUNK_SIZE = 10
-PEOPLES_COUNT = 80
+PEOPLES_COUNT = 90
+cash = dict()
 
 
 async def chunked_async(async_iter, size):
@@ -86,27 +87,30 @@ async def get_person(people_id: int, session: ClientSession):
             vehicles_names.append(name)
     json_data["vehicles_names"] = ','.join(vehicles_names)
 
+    json_data["id"] = people_id
+
     print(f'end {people_id}')
     return json_data
 
 
-async def get_title(film_url: str, session: ClientSession):
-    print(f'begin {film_url}')
-    async with session.get(film_url) as response:
+async def get_title(url: str, session: ClientSession):
+    if url in cash:
+        return cash[url]
+    print(f'begin {url}')
+    async with session.get(url) as response:
         json_data = await response.json()
-    # print(json_data)
-    print(f'end {film_url}')
+    cash[url] = json_data['title']
+    print(f'end {url}')
     return json_data['title']
 
 
 async def get_name(url: str, session: ClientSession):
+    if url in cash:
+        return cash[url]
     print(f'begin {url}')
     async with session.get(url) as response:
         json_data = await response.json()
-    if 'name' in json_data:
-        print(f'{json_data["name"]=}')
-    else:
-        print('NO NAME!!!!!!!!!!!')
+    cash[url] = json_data['name']
     print(f'end {url}')
     return json_data['name']
 
@@ -122,19 +126,20 @@ async def get_people():
 
 async def insert_people(people_chunk):
     async with Session() as session:
-        session.add_all([People(birth_year=item['birth_year'],
-        eye_color=item['eye_color'],
+        session.add_all([People(id=item['id'],
+        birth_year=item.get('birth_year', ''),
+        eye_color=item.get('eye_color', ''),
         films=item['film_titles'],
-        gender=item['gender'],
-        hair_color=item['hair_color'],
-        height=item['height'],
-        homeworld=item['homeworld'],
-        mass=item['mass'],
-        name=item['name'],
-        skin_color=item['skin_color'],
+        gender=item.get('gender', ''),
+        hair_color=item.get('hair_color', ''),
+        height=item.get('height', ''),
+        homeworld=item.get('homeworld', ''),
+        mass=item.get('mass', ''),
+        name=item.get('name', ''),
+        skin_color=item.get('skin_color', ''),
         species=item['species_names'],
         starships=item['starships_names'],
-        vehicles=item['vehicles_names'],) for item in people_chunk])
+        vehicles=item['vehicles_names'],) for item in people_chunk if 'name' in item])
         await session.commit()
 
 

@@ -31,6 +31,6 @@ class People(Base):
 
 
 with Session() as session:
-    q = session.query(People.name, People.birth_year).all()
+    q = session.query(People.id, People.name, People.birth_year, People.eye_color).all()
     for i in q:
         print(*i)
